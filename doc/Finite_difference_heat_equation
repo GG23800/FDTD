@@ -1,0 +1,242 @@
+\documentclass[a4paper,twoside,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{graphics}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{float}
+\usepackage{placeins} %met des barrières aux floats
+\usepackage{color} %pour changer la couler du texte
+\usepackage{cases}
+\usepackage{cite}
+\usepackage{multirow}
+\usepackage{setspace} % pour changer l'interligne poncutellement
+\usepackage{hyperref}
+
+\usepackage{bm} %for bold math symbol
+%math operator, text style in equations
+\DeclareMathOperator{\im}{i} %nombre imaginaire
+\DeclareMathOperator{\e}{e} %nombre exponentiel
+\allowdisplaybreaks %pour permettre de couper une equation pour qu'elle tienne 
+%sur plusieurs pages
+
+\usepackage[top=2.5cm,bottom=2cm,inner=2.5cm,outer=1.5cm]{geometry} 
+
+%========>>> Style des légendes
+\makeatletter
+\renewcommand{\fnum@table}{\small\textbf{Tableau~\thetable}}
+\renewcommand{\fnum@figure}{\small\textbf{Figure~\thefigure}}
+\makeatother
+
+\makeindex
+
+
+\begin{document}
+
+
+\tableofcontents
+\clearpage
+
+\section{Introducion}
+\label{sec:Introduction}
+
+In this document we present the software???
+
+In section~\ref{sec:} we present the heat equation.
+
+In section~\ref{sec:} we present the finite difference methode and application to heat equation.
+
+\section{Heat equation}
+\label{sec:HeatEquation}
+
+The general heat equation is given by (y a-t-il une hypothèse simplificatrice amont supposant que $\rho$ et $c_p$ ne dépendent pas de la chaleur?):
+\begin{equation}
+ \rho c_p \dfrac{\partial T \left(\mathbf{r},t \right)}{\partial t} = \mathbf{\nabla} \cdot \left[ \lambda\left(\mathbf{r} \right) \mathbf{\nabla} T \left(\mathbf{r},t \right) \right] + \dot{q}_v,
+ \label{eq:GeneralHeatEquation}
+\end{equation}
+where $\partial T \left(\mathbf{r},t \right)$ is the temperature at postion $\mathbf{r}$ and time $t$, $\rho$ is the mass density of the material, $c_p$ is the specific heat capacity, $\lambda$ is the thermal conductivity (can also be denoted by $\kappa$) and $\dot{q}_v$ is the volumetric heat source.
+
+In the case of isotropic material ($\mathbf{\nabla} \lambda\left(\mathbf{r} \right) = 0$) with no heat source we obtaine the whell know formula (phrase pourrie):
+\begin{equation}
+ \dfrac{\partial T \left(\mathbf{r},t \right)}{\partial t} = \alpha \Delta T \left(\mathbf{r},t \right),
+\end{equation}
+where $\alpha = \dfrac{\lambda}{\rho c_p}$ is the thermal diffusivity.
+
+\section{Finite difference scheme}
+\label{sec:FiniteDifferenceScheme}
+
+In this section, we present how to solve a heat problem numerically using a finite difference schemes depending on the space considered.
+
+\subsection{1D}
+\label{sec:FiniteDifferenceScheme1D}
+
+\subsubsection{Euler forward}
+\label{sec:FiniteDifferenceScheme1DEulerForward}
+
+\subsubsection{Euler backward}
+\label{sec:FiniteDifferenceScheme1DEulerBackward}
+
+\subsubsection{Crank-Nicolson}
+\label{sec:FiniteDifferenceScheme1DCrankNicolson}
+
+
+\clearpage
+\appendix
+
+\section{Finite difference}
+\label{sec:app_FiniteDifference}
+
+In this appendix, we show how to determine first and second order derivative from a discret function. Then we implement with a simple example different scheme of finite difference method.
+
+\subsection{Numerical derivation}
+\label{sec:app_FiniteDifference_NumericalDerivative}
+
+\subsubsection{First derivative}
+\label{sec:app_FiniteDifference_FirstOrderDerivative}
+
+The finite difference methode (reference au livre sur la modelisation physique, voir comment ils l'introduise) is derive from the numerical derivation. Let $u\left(x\right)$ be a function of the variable $x$, where $u\left( x \right)$ and $x$ are discret then the first order partial derivation is given by:
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i+} = \dfrac{ u\left(x_{i+1}\right) - u\left(x_i\right) }{x_{i+1} - x_i},
+ \label{eq:app_FiniteDifference_PartialDerivativeRight}
+\end{equation}
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i-} = \dfrac{ u\left(x_{i}\right) - u\left(x_{i-1}\right) }{x_{i} - x_{i-1}},
+ \label{eq:app_FiniteDifference_PartialDerivativeLeft}
+\end{equation}
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i\pm} = \dfrac{ u\left(x_{i+1}\right) - u\left(x_{i-1}\right) }{x_{i+1} - x_{i-1}},
+ \label{eq:app_FiniteDifference_PartialDerivativeCenter}
+\end{equation}
+where eq.~\ref{eq:app_FiniteDifference_PartialDerivativeRight},~\ref{eq:app_FiniteDifference_PartialDerivativeLeft} and~\ref{eq:app_FiniteDifference_PartialDerivativeCenter} represente respectively the forward, backward and centered derivative. Considering constant step $\Delta x$ for the discretisation of $x$, eq.~\ref{eq:app_FiniteDifference_PartialDerivativeRight},to~\ref{eq:app_FiniteDifference_PartialDerivativeCenter} can be rewriten:
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i+} = \dfrac{ u\left(x_{i+1}\right) - u\left(x_i\right) }{\Delta x},
+ \label{eq:app_FiniteDifference_PartialDerivativeRight_Deltax}
+\end{equation}
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i-} = \dfrac{ u\left(x_{i}\right) - u\left(x_{i-1}\right) }{\Delta x},
+ \label{eq:app_FiniteDifference_PartialDerivativeLeft_Deltax}
+\end{equation}
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i\pm} = \dfrac{ u\left(x_{i+1}\right) - u\left(x_{i-1}\right) }{2\Delta x},
+ \label{eq:app_FiniteDifference_PartialDerivativeCenter_Deltax}
+\end{equation}
+
+\subsubsection{Second order derivative}
+\label{sec:app_FiniteDifference_SecondOrderDerivative}
+
+The second derivative, considering full step first order derivative, is given by
+\begin{equation}
+ \dfrac{\partial^2 u\left(x\right)}{\partial x^2} = \dfrac{\left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_{i+1}\pm} - \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_{i-1}\pm}}{2\Delta x},
+ \label{eq:app_FiniteDifference_SecondOrder_FullStep1}
+\end{equation}
+leading to
+\begin{equation}
+ \dfrac{\partial^2 u\left(x\right)}{\partial x^2} = \dfrac{ u\left(x_{i+2}\right) + u\left(x_{i-2}\right) -2u\left(x_{i}\right) }{4 \left.\Delta x\right.^2}.
+ \label{eq:app_FiniteDifference_SecondOrder_FullStep}
+\end{equation}
+Here, the second order derivative depend on second neighbors, if we want that to depend on direct neighbors we have to make half-steps first order derivative
+\begin{equation}
+ \left. \dfrac{\partial u\left(x\right)}{\partial x} \right|_{x_i\pm} = \dfrac{ u\left(x_{i+1/2}\right) - u\left(x_{i-1/2}\right) }{\Delta x},
+ \label{eq:app_FiniteDifference_PartialDerivativeCenter_Deltax_HalfStep}
+\end{equation}
+which lead to
+\begin{equation}
+ \dfrac{\partial^2 u\left(x\right)}{\partial x^2} = \dfrac{ u\left(x_{i+1}\right) + u\left(x_{i-1}\right) -2u\left(x_{i}\right) }{\left.\Delta x\right.^2}.
+ \label{eq:app_FiniteDifference_SecondOrder_HalfStep}
+\end{equation}
+
+\subsection{Implementation}
+\label{sec:app_FiniteDifference_Implementation}
+
+In this section we derived three finite difference schemes from a simple example to show how to implement these methods. Let consider the function
+\begin{equation}
+ u\left(t\right) = \e^{-\tau t},
+ \label{eq:app_FiniteDifference_FunctionExample}
+\end{equation}
+then we this function respect
+\begin{equation}
+ \dfrac{\partial u\left(t\right)}{\partial t} = -\tau u\left(t\right).
+ \label{eq:app_FiniteDifference_StateEquation}
+\end{equation}
+Considering forward, backward or centered numerical derivative leads to different finite difference schemes, respectively Euler forward, Euler backward and Crank-Nicolson.
+
+\subsubsection{Euleur forward scheme}
+\label{sec:app_FiniteDifference_EulerForward}
+
+To resolve numerically the equation~\ref{eq:app_FiniteDifference_StateEquation} we use the forward derivative~\ref{eq:app_FiniteDifference_PartialDerivativeRight_Deltax} at time $t_i$:
+\begin{equation}
+ \dfrac{u\left(t_{i+1}\right) - u\left(t_{i}\right)}{\Delta t} = -\tau u\left(t_{i}\right)
+ \label{eq:app_FiniteDifference_EulerForward1}
+\end{equation}
+that lead to
+\begin{equation}
+ u\left(t_{i+1}\right) = \left(1 - \tau\Delta t\right)u\left(t_{i}\right).
+ \label{eq:app_FiniteDifference_EulerForwardScheme}
+\end{equation}
+Then we see that we can determine the value of $u\left(t_{i}\right)$ if we know the value of $u\left( t \right)$ at previous step. This mean that we only need an initial value that will be consider the first step $u\left(t_{0}\right)$ to calculate the value of $u\left(t_{i}\right)$ for each $i$.
+
+This scheme gives the value of $u\left(t_i\right)$ as a geomtrical serie (eq~\ref{eq:app_FiniteDifference_EulerForwardScheme}), so if
+\begin{equation}
+ \left| 1 - \tau\Delta t \right| > 1,
+ \label{eq:app_FiniteDifference_EulerForwardScheme_DivergenceCondition}
+\end{equation}
+$u\left(t_i\right)$ will diverge: $\left| u\left(t_{i+1}\right) \right| > \left| u\left(t_{i+1}\right) \right| \forall i$. Given that we search for a causal solution ($\Delta t>0$), this scheme will give an oscillating non convergent solution $\left(  u\left(t_{i+1}\right) = -  u\left(t_{i}\right)  \right)$ if
+\begin{equation}
+ \Delta t = \dfrac{2}{\tau},
+ \label{eq:app_FiniteDifference_EulerForwardScheme_OscillatingSolution}
+\end{equation}
+and will converge if
+\begin{equation}
+ \Delta t < \dfrac{2}{\tau}.
+ \label{eq:app_FiniteDifference_EulerForwardScheme_ConvergenceCondition}
+\end{equation}
+
+\subsubsection{Euler backward scheme}
+\label{sec:app_FiniteDifference_EulerBackward}
+
+To resolve numerically the equation~\ref{eq:app_FiniteDifference_StateEquation} we use the backward derivative~\ref{eq:app_FiniteDifference_PartialDerivativeLeft_Deltax} at time $t_i$:
+\begin{equation}
+ \dfrac{u\left(t_{i}\right) - u\left(t_{i-1}\right)}{\Delta t} = -\tau u\left(t_{i}\right)
+ \label{eq:app_FiniteDifference_EulerBackward1}
+\end{equation}
+that lead to
+\begin{equation}
+ u\left(t_{i}\right) = \dfrac{1}{1 + \tau\Delta t}u\left(t_{i-1}\right).
+ \label{eq:app_FiniteDifference_EulerBackwardScheme}
+\end{equation}
+With this example, as for the Euler forward scheme, if know the value of $u\left( t \right)$ at a given time (that will be define as the initial condition) we can calculate the value of $u\left(t_{i}\right)$ for each $i$.
+
+Considering $\tau > 0$ and $\Delta t > 0$, this scheme allways converge.
+
+\subsubsection{Crank-Nicolson scheme}
+\label{sec:app_FiniteDifference_CrankNicolson}
+
+To resolve numerically the equation~\ref{eq:app_FiniteDifference_StateEquation} we use both the forward~\ref{eq:app_FiniteDifference_PartialDerivativeRight_Deltax} and backward~\ref{eq:app_FiniteDifference_PartialDerivativeLeft_Deltax} derivation expression, considering a half time step. The Euler forward scheme~\ref{eq:app_FiniteDifference_EulerForwardScheme} gives:
+\begin{equation}
+ u\left(t_{i+1/2}\right) = \left(1 - \dfrac{\tau\Delta t}{2}\right)u\left(t_{i}\right),
+ \label{eq:app_FiniteDifference_CrankNicolson_ForwardPart}
+\end{equation}
+the Euler backward scheme~\ref{eq:app_FiniteDifference_EulerBackwardScheme} gives
+\begin{equation}
+ u\left(t_{i+1-1/2}\right) = \left(1 + \dfrac{\tau\Delta t}{2}\right)u\left(t_{i+1}\right),
+ \label{eq:app_FiniteDifference_CrankNicolson_BackwardPart}
+\end{equation}
+and inserting~\ref{eq:app_FiniteDifference_CrankNicolson_BackwardPart} into~\ref{eq:app_FiniteDifference_CrankNicolson_ForwardPart} we obtain:
+\begin{equation}
+ u\left(t_{i+1}\right) = \dfrac{2 - \tau \Delta t}{2 + \tau \Delta t}u\left(t_{i}\right).
+\end{equation}
+This scheme converge if
+\begin{equation}
+ \left| \dfrac{2 - \tau \Delta t}{2 + \tau \Delta t} \right| < 1
+\end{equation}
+wich is true $\forall \Delta t$ considering $\tau > 0$ and $\Delta t > 0$, so this scheme allways converge.
+
+\subsubsection{Result}
+\label{sec:app_FiniteDifference_Result}
+
+
+\section{Toeplitz matrix}
+\label{sec:app_Toeplitz_matrix}
+
+
+
+\end{document}
