@@ -12,6 +12,7 @@
 \usepackage{setspace} % pour changer l'interligne poncutellement
 \usepackage{hyperref}
 
+\numberwithin{equation}{section} %numeration display as x.y
 \usepackage{bm} %for bold math symbol
 %math operator, text style in equations
 \DeclareMathOperator{\im}{i} %nombre imaginaire
@@ -39,11 +40,9 @@
 \section{Introducion}
 \label{sec:Introduction}
 
-In this document we present the software???
+%In this document we present the software???
 
-In section~\ref{sec:} we present the heat equation.
-
-In section~\ref{sec:} we present the finite difference methode and application to heat equation.
+In section~\ref{sec:HeatEquation} we present the heat equation. In section~\ref{sec:FiniteDifferenceScheme} we present the finite difference methode apply to heat equation.
 
 \section{Heat equation}
 \label{sec:HeatEquation}
@@ -58,27 +57,198 @@ where $\partial T \left(\mathbf{r},t \right)$ is the temperature at postion $\ma
 In the case of isotropic material ($\mathbf{\nabla} \lambda\left(\mathbf{r} \right) = 0$) with no heat source we obtaine the whell know formula (phrase pourrie):
 \begin{equation}
  \dfrac{\partial T \left(\mathbf{r},t \right)}{\partial t} = \alpha \Delta T \left(\mathbf{r},t \right),
+ \label{eq:SimplifiedHeatEquation}
 \end{equation}
 where $\alpha = \dfrac{\lambda}{\rho c_p}$ is the thermal diffusivity.
 
-\section{Finite difference scheme}
+\section{Finite difference scheme for heat equation}
 \label{sec:FiniteDifferenceScheme}
 
-In this section, we present how to solve a heat problem numerically using a finite difference schemes depending on the space considered.
+In this section, we present how to solve a heat problem numerically using a finite difference scheme depending on the space considered. 
 
 \subsection{1D}
 \label{sec:FiniteDifferenceScheme1D}
 
+In this section we present the 1D case of the heat equation for the Euler forward and backward scheme and the Crank-Nicolson scheme. We also describe the different boundary conditions and the case of an interface between two different materials. 
+
+Lets $T\left( x_i, t_l \right)$ be temperature at position $x_i$ and time $t_l$, where the spatial step of discretization is $\Delta x$ and the temporal step of discretization is $\Delta t$. In the following of this section, we note:
+\begin{equation}
+    \gamma = \alpha \dfrac{\Delta t}{\Delta x^2},
+    \label{eq:GammaNotation}
+\end{equation}
+\begin{equation}
+  T_{i,l} = T\left( x_i, t_l \right),
+  \label{eq:FD_1D_short}
+\end{equation}
+and:
+\begin{equation}
+  \dot{Q}_{i,l} = \rho c_p \dot{q}_v\left( x_i, t_{l} \right).
+  \label{eq:FD_1D_volumetric_short}
+\end{equation}
+
 \subsubsection{Euler forward}
 \label{sec:FiniteDifferenceScheme1DEulerForward}
+
+By including the forward time derivative expression~\ref{eq:app_FiniteDifference_PartialDerivativeRight_Deltax} and the half step second order space derivative~\ref{eq:app_FiniteDifference_SecondOrder_HalfStep} in the heat equation~\ref{eq:GeneralHeatEquation} we obtaine the Euler forward scheme. Considering we are in an infinite homogeneous media, we have
+
+\begin{equation}
+    \dfrac{T_{i,l+1} - T_{i,l}}{\Delta t} = \dfrac{\alpha}{\Delta x^2}\left[ T_{i+1,l} + T_{i-1,l} - 2T_{i,l} \right] + \dot{Q}_{i,l},
+    \label{eq:EulerForwardRougth}
+\end{equation}
+the volumetric heat source can also with postion and time. Hence we have
+\begin{equation}
+    T_{i,l+1} = T_{i,l} + \gamma\left[ T_{i+1,l} + T_{i-1,l} - 2T_{i,l} \right] + \dot{Q}_{i,j}.
+    \label{eq:EulerForwardGeneral}
+\end{equation}
+The value of the temperature at step time $t_{l+1}$ only depend on the value of the temperature at step $t_l$ of the considered node and of it's direct neighbors. The variation of the temperature against time is easy to calculate with this scheme, we just have to know the temperature field at first step $t=0$ (initial condition) the boundary condition at the border of the domain (at $x=0$ and $x=x_{\text{max}}$). The boundary conditions can be either constant temperture or constant flux... Different boundary conditions are presented in sections X to Y.
+
+If we consider that the temperature at $x_i$ is nearly the the mean value of the temperature of the neighbors points,
+\begin{equation}
+    T\left( x_{i}, t_{l} \right) = T\left( x_{i+1}, t_{l} \right) + T\left( x_{i-1}, t_{l} \right)
+    \label{eq:EulerForwardMeanValue}
+\end{equation}
+and no volumetric heat source, the scheme converge if (nop, wrong)
+\begin{equation}
+    \left| 1 + \alpha\dfrac{\Delta t}{\Delta x^2} \right| < 1
+    \label{eq:EulerForwardConvergenceFirstStep}
+\end{equation}
+then
+\begin{equation}
+    \Delta t < \dfrac{2 \Delta x^2}{\alpha}
+\end{equation}
 
 \subsubsection{Euler backward}
 \label{sec:FiniteDifferenceScheme1DEulerBackward}
 
+By including the backward time derivative expression~\ref{eq:app_FiniteDifference_PartialDerivativeLeft_Deltax} and the half step second order space derivative~\ref{eq:app_FiniteDifference_SecondOrder_HalfStep} in the heat equation~\ref{eq:GeneralHeatEquation} we obtaine the Euler backward scheme. Considering we are in an infinite homogeneous media, we have
+
+\begin{equation}
+    \dfrac{T_{i,l+1} - T_{i,l}}{\Delta t} = \dfrac{\alpha}{\Delta x^2}\left[ T_{i+1,l+1} + T_{i-1,l+1} - 2T_{i,l+1} \right] + \dot{Q}_{i,l+1},
+    \label{eq:EulerBackwardRougth}
+\end{equation}
+
+and hence
+\begin{equation}
+    T_{i,l+1} - \gamma\left[ T_{i+1,l+1} + T_{i-1,l+1} - 2T_{i,l+1} \right] = T_{i,l} + \dot{Q}_{i,l+1}.
+    \label{eq:EulerBackwardGeneral}
+\end{equation}
+
+So for the Euleur bacward scheme one have to resolve a system of type
+\begin{equation}
+  \mathbf{M}\mathbf{T}_{l+1} = \mathbf{T}_{l},
+  \label{eq:HFDTD_1D_EulerBackwardSystem}
+\end{equation}
+This system can be resolved by different methods, but numerically the best way to do that in therms of time is a LU decomposition.
+
+Consider a system with $N+1$ node along $x$, with given boundary condition at $x_0$ and $x_{N}$, then eq.~\ref{eq:EulerBackwardGeneral} lead to the system:
+\begin{equation}
+ \begin{bmatrix}
+   1+2\gamma & -\gamma &  0 & 0 & \cdots \\
+    & \cdots &  &  & \cdots \\
+   \cdots & -\gamma & 1+2\gamma & -\gamma & \cdots \\
+    &  &  & \cdots & \\
+   \cdots & 0 & 0 & -\gamma & 1+2-\gamma
+ \end{bmatrix}
+ \begin{pmatrix}
+    T_{1,l+1} \\
+    \cdots \\
+    T_{i,l+1} \\
+    \cdots \\
+    T_{N-1, l+1} 
+ \end{pmatrix} =
+ \begin{pmatrix}
+    T_{1,l} + \dot{Q}_{1, l+1} + X_0 \\
+    \cdots \\
+    T_{i,l} + \dot{Q}_{i, l+1} \\
+    \cdots \\
+    T_{N-1, l} + \dot{Q}_{N-1, l} + X_N.
+ \end{pmatrix}
+ \label{eq:EulerBackwardMatrixSystemGen}
+\end{equation}
+Where $X_0$ and $X_N$ depend on the boundary conditions. This system can be resolved by different methods, but numerically the best way to do that in therms of time is a LU decomposition.
+
+Eq.~\ref{eq:EulerBackwardMatrixSystemGen} can be rewrite under a more compact form:
+\begin{equation}
+  \mathbf{D}\left(\gamma\right) \mathbf{T}_{\mathbf{i},l+1} = \mathbf{T}_{\mathbf{i},l}
+  +\dot{\mathbf{Q}}_{\mathbf{i},l+1} + \mathbf{X}.
+ \label{eq:EulerBackwardMatrixSystemGenCompacte}
+\end{equation}
+
+As for the simple implemenation presented in Appendix~\ref{sec:app_FiniteDifference}, this scheme is absolutely convergent.
+
 \subsubsection{Crank-Nicolson}
 \label{sec:FiniteDifferenceScheme1DCrankNicolson}
 
+To obtained the Crank-Nicolson scheme we proceed as in~\ref{sec:app_FiniteDifference_CrankNicolson} and obtain
 
+\begin{equation}
+  T_{i,l} +\dfrac{\gamma}{2} \left[ T_{i-1,l} + T_{i+1,l} - 2T_{i,l} \right] + \dfrac{\dot{Q}_{i,l}}{2} = T_{i,l+1} - \dfrac{\gamma}{2} \left[ T_{i-1,l+1} + T_{i+1,l+1} - 2T_{i,l+1} \right] + \dfrac{\dot{Q}_{i,l+1}}{2},
+  \label{eq:FD_1D_CrankNicolsonFirst}
+\end{equation}
+
+that can be rewrite as
+\begin{equation}
+  \mathbf{D}\left(\dfrac{\gamma}{2}\right) \mathbf{T}_{\mathbf{i},l+1} = \mathbf{D}\left(\dfrac{-\gamma}{2}\right)\mathbf{T}_{\mathbf{i},l}
+  +\dfrac{\dot{\mathbf{Q}}_{\mathbf{i},l}+\dot{\mathbf{Q}}_{\mathbf{i},l+1}}{2} + \mathbf{X}.
+ \label{eq:CrankNicolsonMatrixSystemGenCompacte}
+\end{equation}
+
+\subsubsection{Boundary conditions}
+\label{sec:FiniteDifferenceScheme1DBoundaryCondition}
+
+\paragraph{Dirichlet boundary condition}\mbox{}\\
+\label{sec:FiniteDifferenceScheme1DDirichletBC}
+
+A Dirichlet boundary condition is given by a constant temperature at one point, for example at node $i=0$
+\begin{equation}
+  T_{0,l} = T_0.
+  \label{eq:FD1D_Dirichlet}
+\end{equation}
+
+\paragraph{Neumann boundary condition}\mbox{}\\
+\label{sec:FiniteDifferenceScheme1DNeumannBC}
+
+A Neumann boundary condition is given by a constant flux, for example the left flux at node $i=0$:
+\begin{equation}
+  \left. \dfrac{\partial T\left( x,t \right)}{\partial x} \right|_{x_0^-} = \partial T_0^-,
+  \label{eq:FD1D_Neumann}
+\end{equation}
+then the finite difference of the Laplacien is:
+\begin{equation}
+  \left. \dfrac{\partial^2 T\left( x,t \right)}{\partial x^2} \right|_{x=x_0} = \dfrac{\partial T_0^-}{\Delta x} + \dfrac{T_{1,l} - T_{0,l}}{\Delta x^2}
+  \label{eq:FD1D_Neumann_FD}
+\end{equation}
+
+\paragraph{Periodic boundary condition}\mbox{}\\
+\label{sec:FD1D periodic boundary condition}
+
+A periodic boundary condition consist in considering an infinite medium along $x$ with a periodicity of the length of the simulation. Then for $i\in\left[0;N\right]$, node $0$ and node $N$ are the same node then the finite difference of the Laplacien is:
+\begin{equation}
+  \left. \dfrac{\partial^2 T\left( x,t \right)}{\partial x^2} \right|_{x=x_0} = \dfrac{T_{1,l} + T_{N-1,l} - 2T_{0,l}}{\Delta x^2}.
+  \label{eq:FD1D_periodic_BD}
+\end{equation}
+
+
+\subsubsection{Interface between two different media}
+\label{sec:FiniteDifferenceScheme1DInterface}
+
+In the case where there are different media in the simulation, it is necessary to implement the case of an interface between two different media. To do that, we have to apply the finite difference method to
+\begin{equation}
+  \nabla \cdot \left[ \lambda\left(\mathbf{r}\right) \nabla T\left( \mathbf{r},t \right) \right]
+  \label{eq:HFDTD_1D_DivOfGrad}
+\end{equation}
+Let's consider an interface at $x_i = 0$, separating media 0 (for $x < x_i$) and 1 (for $x > x_i$). The thermal conductivity media $m$ is noted $\lambda^m$, then expression~\ref{eq:HFDTD_1D_DivOfGrad} can be rewrite
+\begin{equation}
+  \nabla \cdot \left[ \lambda\left(\mathbf{r}\right) \nabla T\left( \mathbf{r},t \right) \right] = \nabla \left[ \lambda^1 \left.\dfrac{\partial T\left( \mathbf{r},t \right)}{\partial x}\right|_{x_{i+1/2}} - \lambda^0 \left.\dfrac{\partial T\left( \mathbf{r},t \right)}{\partial x}\right|_{x_{i-1/2}} \right]
+  \label{eq:HFDTD_1D_InterfaceFiniteDifference1}
+\end{equation}
+then at time $t = t_l$
+\begin{equation}
+  \nabla \cdot \left[ \lambda\left(\mathbf{r}\right) \nabla T\left( \mathbf{r},t \right) \right] = \dfrac{\lambda^0 T_{i-1,l} + \lambda^1 T_{i+1,l} - \left(\lambda^0 + \lambda^1\right)T_{i-1,l}}{\Delta x^2}.
+  \label{eq:HFDTD_1D_InterfaceFinal}
+\end{equation}
+In eq.\ref{eq:HFDTD_1D_InterfaceFinal} it appears that node $x_i$ behave like it's thermal properties are the mean value of the thermal properties of both media surounding it.
+ 
 \clearpage
 \appendix
 
@@ -230,12 +400,6 @@ This scheme converge if
 \end{equation}
 wich is true $\forall \Delta t$ considering $\tau > 0$ and $\Delta t > 0$, so this scheme allways converge.
 
-\subsubsection{Result}
-\label{sec:app_FiniteDifference_Result}
-
-
-\section{Toeplitz matrix}
-\label{sec:app_Toeplitz_matrix}
 
 
 
