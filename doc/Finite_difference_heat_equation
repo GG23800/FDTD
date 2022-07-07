@@ -39,7 +39,7 @@
 \section{Introducion}
 \label{sec:Introduction}
 
-In this document we present the software???
+%In this document we present the software???
 
 In section~\ref{sec:} we present the heat equation.
 
@@ -61,16 +61,22 @@ In the case of isotropic material ($\mathbf{\nabla} \lambda\left(\mathbf{r} \rig
 \end{equation}
 where $\alpha = \dfrac{\lambda}{\rho c_p}$ is the thermal diffusivity.
 
-\section{Finite difference scheme}
+\section{Finite difference scheme for heat equation}
 \label{sec:FiniteDifferenceScheme}
 
-In this section, we present how to solve a heat problem numerically using a finite difference schemes depending on the space considered.
+In this section, we present how to solve a heat problem numerically using a finite difference scheme depending on the space considered.
 
 \subsection{1D}
 \label{sec:FiniteDifferenceScheme1D}
 
+In this section we present the 1D case of the heat equation for the Euler forward and backward scheme and the Crank-Nicolson scheme. We also describe the different boundary conditions and the case of an interface between two different materials. 
+
+Lets $T\left( x_i, t_l \right)$ be temperature at position $x_i$ and time $t_l$, where the spatial step of discretization is $\Delta x$ and the temporal step of discretization is $\Delta t$.
+
 \subsubsection{Euler forward}
 \label{sec:FiniteDifferenceScheme1DEulerForward}
+
+To resolve the heat equation with the Euler forward scheme, we use the forward time derivative expression~\ref{eq:app_FiniteDifference_PartialDerivativeRight_Deltax} and the half step second order space derivative~\ref{eq:app_FiniteDifference_SecondOrder_HalfStep}
 
 \subsubsection{Euler backward}
 \label{sec:FiniteDifferenceScheme1DEulerBackward}
@@ -78,6 +84,11 @@ In this section, we present how to solve a heat problem numerically using a fini
 \subsubsection{Crank-Nicolson}
 \label{sec:FiniteDifferenceScheme1DCrankNicolson}
 
+\subsubsection{Boundary conditions}
+\label{sec:FiniteDifferenceScheme1DBoundaryCondition}
+
+\subsubsection{Interface between two different media}
+\label{sec:FiniteDifferenceScheme1DInterface}
 
 \clearpage
 \appendix
@@ -230,12 +241,6 @@ This scheme converge if
 \end{equation}
 wich is true $\forall \Delta t$ considering $\tau > 0$ and $\Delta t > 0$, so this scheme allways converge.
 
-\subsubsection{Result}
-\label{sec:app_FiniteDifference_Result}
-
-
-\section{Toeplitz matrix}
-\label{sec:app_Toeplitz_matrix}
 
 
 
