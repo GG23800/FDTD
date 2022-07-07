@@ -5,7 +5,7 @@ int main(int argc, char* argv[])
     unsigned int nnode = 32;
     FDTD_H1D Sim0;
     Sim0.SetNumberOfNode(nnode);
-    Sim0.SetNumberOfCalculationLoop(1000);
+    Sim0.SetNumberOfCalculationLoop(100000);
     Sim0.HMList.print();
     Sim0.SetBoundaryCondition(0,BoundaryCondition::Dirichlet,-12.2f);
     Sim0.SetBoundaryCondition(nnode-1, BoundaryCondition::Dirichlet,23.8f);
@@ -25,9 +25,12 @@ int main(int argc, char* argv[])
 
     Sim0.SetAutoConvergenceTestOn();
     Sim0.SetConvergenceTestStep(100);
+    Sim0.SetConvergenceTestCondition(0.00001f);
     Sim0.Run();
+    std::cout << "result: ";
     Sim0.GetLastSimulationOutput().print();
-    Sim0.GetNodeWeight().print();
+    lv.linspace(-12.2f,23.8f);
+    lv.print();
 
     return 0;
 }

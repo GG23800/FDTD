@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC  -std=c++11 -Wall -O3  -shared -Wl,-soname,libHeatFDTD.so -o src/libHeatFDTD.so CMakeFiles/HeatFDTD.dir/src/heat_fdtd_1d.cpp.o  -L/home/jerome/Bureau/Github/FDTD/../MaterialManagement/bin -Wl,-rpath,/home/jerome/Bureau/Github/FDTD/../MaterialManagement/bin -lMaterialManagement 

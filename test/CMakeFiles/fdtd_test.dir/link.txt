@@ -1,1 +1,0 @@
-/usr/bin/c++   -std=c++11 -Wall -O3 -std=c++11  -rdynamic CMakeFiles/fdtd_test.dir/unit_test/test_fdtd_h1d.cpp.o  -o unit_test/fdtd_test  -L/home/jerome/Bureau/Github/FDTD/../MaterialManagement/bin -Wl,-rpath,/home/jerome/Bureau/Github/FDTD/../MaterialManagement/bin:/home/jerome/Bureau/Github/FDTD/src ../src/libHeatFDTD.so -lMaterialManagement 
