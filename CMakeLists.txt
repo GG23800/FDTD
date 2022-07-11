@@ -28,7 +28,7 @@ set(HEADER
     )
 
 add_library(HeatFDTD SHARED ${SRC} ${HEADER})
-target_link_libraries( HeatFDTD MaterialManagement )
+target_link_libraries( HeatFDTD MaterialManagement pthread )
 #set_target_properties( MaterialManagement HeatFDTD PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src" )
 
 # Test subproject

@@ -34,7 +34,12 @@ FDTD_H1D::FDTD_H1D() : LeftID(0), RightID(0), LeftWeight(0), RightWeight(0), sou
 
 FDTD_H1D::~FDTD_H1D()
 {
-
+    if (Running)
+    {
+        Running=false;
+        // TODO wait or add a bool to be sure that if a calculation loop
+        // we wait it is finished or a sleeping time
+    }
 }
 
 void FDTD_H1D::ResetSources(float value)
@@ -330,11 +335,16 @@ void FDTD_H1D::SetNumberOfCalculationLoop(unsigned int nnocl)
 
 void FDTD_H1D::CheckDeltat()
 {
-    float dtm = 1.f; // TODO add the correct formula
-    if (Deltat > dtm) 
+    PrepareNodeWeightForDeltat();
+    std::cout << "NodeWeight: ";
+    NodeWeight.print();
+    std::cout << "NodeWeight max: " << NodeWeight.max() << std::endl;
+    float dtm = 0.5f/NodeWeight.max();
+    std::cout << "Deltat max: " << dtm << std::endl;
+    if (Deltat >= dtm) 
     {
-        Deltat = dtm;
-        std::cout << "Warning, deltat is too high (" << Deltat << ") and the simulation will diverge, value of deltat is set to " << dtm << "." << std::endl;
+        std::cout << "Warning, deltat is too high (" << Deltat << ") and the simulation will diverge. Deltat maximum value (not included) is " << dtm <<", we set it's value to " << 0.99f*dtm << ". This may lead to an error later." << std::endl;
+        Deltat = 0.99f*dtm;
     }
     Valid = true;
     // TODO how to manage Valid?? Because if false, it can't become true in function becaus it can be false before entering the function
@@ -512,7 +522,7 @@ void FDTD_H1D::CheckMediumThickness()
     }
 }
 
-void FDTD_H1D::PrepareNodeWeight()
+void FDTD_H1D::PrepareNodeWeightForDeltat()
 {
     if (Valid)
     {
@@ -520,19 +530,32 @@ void FDTD_H1D::PrepareNodeWeight()
         unsigned int lmID = 0;
         lmID = (unsigned int)(materials.data[0]);
         lThermDiff = (HMList.get_material(lmID)).get_thermal_diffusivity();
-        NodeWeight.data[0] = lThermDiff*Deltat/Deltax/Deltax;
+        NodeWeight.data[0] = lThermDiff/Deltax/Deltax;
         for (unsigned int k=1 ; k<NumberOfNode ; k++)
         {
             if ( (unsigned int)(materials.data[k] != lmID) )
             {
                 lmID = (unsigned int)(materials.data[k]);
                 lThermDiff = (HMList.get_material(lmID)).get_thermal_diffusivity();
-                NodeWeight.data[k] = lThermDiff*Deltat/Deltax/Deltax;
+                NodeWeight.data[k] = lThermDiff/Deltax/Deltax;
             }
             else
             {
                 NodeWeight.data[k] = NodeWeight.data[k-1];
             }
+        }
+    }
+}
+
+void FDTD_H1D::PrepareNodeWeight()
+{
+    if (Valid)
+    {
+        PrepareNodeWeightForDeltat();
+        // TODO add a check to not recalculate that?
+        for (unsigned int k=0 ; k<NumberOfNode ; k++)
+        {
+            NodeWeight.data[k] *= Deltat;
         }
     }
     else
@@ -567,14 +590,24 @@ void FDTD_H1D::PrepareKernel()
     LoopCount = 0;
 }
 
-// TODO inclue an auto convergence test with step defined by user
 void FDTD_H1D::Run()
+{
+    std::thread::id this_id = std::this_thread::get_id();
+    std::cout << "Main thread id: " << this_id << std::endl;
+    CheckForError();
+    PrepareKernel();
+    std::thread run_thread(&FDTD_H1D::prun, this);
+    run_thread.detach();
+}
+
+// TODO inclue an auto convergence test with step defined by user
+void FDTD_H1D::prun()
 {
     // TODO make it as a private function
     // the public function will send this function in a different thread
     // TODO include Mutex protection
-    CheckForError();
-    PrepareKernel();
+    std::thread::id this_id = std::this_thread::get_id();
+    std::cout << "prun id: " << this_id << std::endl;
     Converged = false;
     unsigned int k = 0;
     unsigned int NextConvergenceTest = ConvergenceTestStep;
@@ -584,14 +617,19 @@ void FDTD_H1D::Run()
         Running = true;
         while ( Running && (LoopCount < MaxLoop) )
         {
-            //std::cout << "Running loop: " << LoopCount << std::endl;
-            if ( (LoopCount%2) == 0 ) // TODO only once at master calculation function
+            if (LoopCount%100 == 0)
             {
+                std::cout << "Running loop: " << LoopCount << std::endl;
+            }
+            if ( (LoopCount%2) == 0 )
+            {
+                OddVectorProtection.lock();
                 ActiveVector = &oddVector;
                 RefVector = &evenVector;
             }
             else
             {
+                EvenVectorProtection.lock();
                 ActiveVector = &evenVector;
                 RefVector = &oddVector;
             }
@@ -601,6 +639,10 @@ void FDTD_H1D::Run()
             {
                 ActiveVector->data[k] = RefVector->data[k] + NodeWeight.data[k-1]*RefVector->data[k-1] + NodeWeight.data[k+1]*RefVector->data[k+1] - 2.f*NodeWeight.data[k]*RefVector->data[k] + sources.data[k];
             }
+            LoopCount++;
+            // LoopCount has been incremented so inversion on the test compare to first one
+            if ( (LoopCount%2) == 0 ) {EvenVectorProtection.unlock();}
+            else {OddVectorProtection.unlock();}
             
             if (AutoConvergenceTest)
             {
@@ -617,12 +659,33 @@ void FDTD_H1D::Run()
                     NextConvergenceTest += ConvergenceTestStep;
                 }
             }
-
-            LoopCount++;
         }
+        Running = false;
     }
     else
     {
         std::cout << "Error, trying to run a simulation whereas it is not valid. Abortion." << std::endl;
     }
+}
+
+Vector<float> FDTD_H1D::GetLastSimulationOutput()
+{
+    // not very efficient leads to creation and copy of a vector
+    // prefer second version of the functin for time improvement
+    Vector<float> output(0);
+    if ( (LoopCount%2) == 0 ) {OddVectorProtection.lock();}
+    else {EvenVectorProtection.lock();}
+    output = *(ActiveVector);
+    if ( (LoopCount%2) == 0 ) {OddVectorProtection.unlock();}
+    else {EvenVectorProtection.unlock();}
+    return output;
+}
+
+void FDTD_H1D::GetLastSimulationOutput(Vector<float> Output)
+{
+    if ( (LoopCount%2) == 0 ) {OddVectorProtection.lock();}
+    else {EvenVectorProtection.lock();}
+    Output = *(ActiveVector);
+    if ( (LoopCount%2) == 0 ) {OddVectorProtection.unlock();}
+    else {EvenVectorProtection.unlock();}
 }

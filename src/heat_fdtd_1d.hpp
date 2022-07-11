@@ -1,6 +1,9 @@
 #ifndef HEAT_FDTD_1D_HPP
 #define HEAT_FDTD_1D_HPP
 
+#include<thread>
+#include<mutex>
+
 #include"Vector.hpp"
 #include"material.hpp"
 
@@ -45,18 +48,21 @@ class FDTD_H1D
 
         bool IsValidState() {return Valid;}
 
+        // sources manipulation
         void ResetSources(float value = 0.f);
         void SetSources(unsigned int node, float value);
         void SetSources(unsigned int node0, unsigned int nodef, float value);
         void SetSources(Vector<float> nsources);
         Vector<float> GetSources() {return sources;}
 
+        // Material manipulation
         void ResetMaterials(unsigned short mat = 0);
         void SetMaterials(unsigned int node, unsigned short mat);
         void SetMaterials(unsigned int node0, unsigned int nodef, unsigned short mat);
         void SetMaterials(Vector<unsigned short> nmaterials);
         Vector<unsigned short> GetMaterials() {return materials;}
 
+        // Initial condition
         void ResetInitialCondition(float value = 0.f);
         void SetRandomInitialCondition(float Tmin, float Tmax);
         void SetInitialCondition(unsigned int node, float value);
@@ -90,9 +96,11 @@ class FDTD_H1D
 
         void CheckForError(); // TODO return last error?
         void Run();
-        Vector<float> GetLastSimulationOutput() {return *(ActiveVector);}
+        Vector<float> GetLastSimulationOutput();
+        void GetLastSimulationOutput(Vector<float> Output);
         Vector<float> GetNodeWeight() {return NodeWeight;}
         inline void Stop() {Running = false;}
+        inline bool IsRunning() {return Running;}
 
         // TODO check list
         // implement dynamic sources (and later/on the same time any other dynamic parameter)
@@ -106,11 +114,14 @@ class FDTD_H1D
         void CheckMediumThickness();
 
         void PrepareBoundaryCalculation();
+        void PrepareNodeWeightForDeltat();
         void PrepareNodeWeight();
         void AdaptInterfaceWeight();
+        // TODO ? void AdaptSources();
         void PrepareKernel();
 
         void CalculateBoundary(); // TODO check function...
+        void prun();
 
         float Deltax;
         float Deltat;
@@ -130,6 +141,8 @@ class FDTD_H1D
         bool Dynamic;
         bool Valid;
         bool Running;
+        std::recursive_mutex OddVectorProtection;
+        std::recursive_mutex EvenVectorProtection;
 
         // Autotest
         bool AutoConvergenceTest;
