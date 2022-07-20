@@ -1,8 +1,14 @@
 #ifndef HEAT_FDTD_1D_HPP
 #define HEAT_FDTD_1D_HPP
 
+#include<string>
+#include<chrono>
+#include<iostream>
+#include<fstream>
 #include<thread>
 #include<mutex>
+
+#include<unistd.h>
 
 #include"Vector.hpp"
 #include"material.hpp"
@@ -22,6 +28,14 @@ enum BoundaryCondition
     Neumann,
     Periodic,
     NbBC
+};
+
+enum SaveFileType
+{
+    txt = 0,
+    json,
+    binary,
+    Nb
 };
 // TODO add FDTDError ???
 /*
@@ -82,6 +96,14 @@ class FDTD_H1D
         void SetConvergenceTestCondition(float nctc);
         float GetConvergenceTestCondition() {return ConvergenceTestCondition;}
         bool GetConvergenceResult() {return Converged;}
+
+        // Periodic save functions
+        void SetPeriodicSaveFileType(SaveFileType nSaveFileType);
+        void SetPeriodicSaveStep(unsigned int nSaveStep) {SaveStep =nSaveStep;}
+        void SetPeriodicSaveState(bool nPeriodicSaveState) {PeriodicSave = nPeriodicSaveState;}
+        bool GetPeriodicSaveState() {return PeriodicSave;}
+        void PeridodicSaveStep(unsigned int nSaveStep);
+        void SetPeriodicSaveFileName(std::string nName) {PeriodicSaveFileName = nName; PeriodicSaveFileRenamed = true;}
         
         void SetDeltax(float dx);
         void SetDeltat(float dt);
@@ -101,6 +123,7 @@ class FDTD_H1D
         Vector<float> GetNodeWeight() {return NodeWeight;}
         inline void Stop() {Running = false;}
         inline bool IsRunning() {return Running;}
+        inline bool IsPreparing() {return Preparing;}
 
         // TODO check list
         // implement dynamic sources (and later/on the same time any other dynamic parameter)
@@ -123,6 +146,12 @@ class FDTD_H1D
         void CalculateBoundary(); // TODO check function...
         void prun();
 
+        // autosave
+        void OpenPeriodicFile();
+        void ClosePeriodicFile();
+        void WriteActualStep();
+        std::string GetAutosaveFileName();
+
         float Deltax;
         float Deltat;
         unsigned int NumberOfNode;
@@ -138,8 +167,10 @@ class FDTD_H1D
 
         unsigned long int MaxLoop;
         unsigned long int LoopCount;
+        unsigned long int LastAskedOutput;
         bool Dynamic;
         bool Valid;
+        bool Preparing;
         bool Running;
         std::recursive_mutex OddVectorProtection;
         std::recursive_mutex EvenVectorProtection;
@@ -149,6 +180,17 @@ class FDTD_H1D
         bool Converged;
         unsigned int ConvergenceTestStep;
         float ConvergenceTestCondition;
+
+        // Save options
+        // save state in json
+        // save type for periodic save
+        bool PeriodicSave;
+        bool PeriodicSaveFileRenamed;
+        SaveFileType lSaveFileType;
+        unsigned int SaveStep;
+        std::string PeriodicSaveFileName;
+        std::string PeriodicSaveExtension;
+        std::ofstream PeriodicSaveFile;
 
         Vector<float> sources;
         Vector<unsigned short> materials;

@@ -1,6 +1,6 @@
 #include"heat_fdtd_1d.hpp"
 
-FDTD_H1D::FDTD_H1D() : LeftID(0), RightID(0), LeftWeight(0), RightWeight(0), sources(3), materials(3), evenVector(3), oddVector(3), NodeWeight(3)
+FDTD_H1D::FDTD_H1D() : LeftID(0), RightID(0), LeftWeight(0), RightWeight(0), PeriodicSaveFileName{}, PeriodicSaveExtension{}, PeriodicSaveFile{}, sources(3), materials(3), evenVector(3), oddVector(3), NodeWeight(3)
 {
     Deltax = 1.f;
     Deltat = 1.f;
@@ -13,8 +13,10 @@ FDTD_H1D::FDTD_H1D() : LeftID(0), RightID(0), LeftWeight(0), RightWeight(0), sou
 
     MaxLoop = 10;
     LoopCount = 0;
+    LastAskedOutput = 0;
     Dynamic = false;
     Valid = true;
+    Preparing = false;
     Running = false;
 
     // Convergence test
@@ -30,6 +32,15 @@ FDTD_H1D::FDTD_H1D() : LeftID(0), RightID(0), LeftWeight(0), RightWeight(0), sou
     NodeWeight.reset();
     ActiveVector = &evenVector;
     RefVector = &oddVector;
+
+    // TODO check periodic save functions
+    // Saving option
+    PeriodicSave = false;
+    PeriodicSaveFileRenamed = false;
+    lSaveFileType = txt;
+    SaveStep = 1000;
+    PeriodicSaveFileName = "Autosave";
+    PeriodicSaveExtension = ".txt";
 }
 
 FDTD_H1D::~FDTD_H1D()
@@ -592,6 +603,7 @@ void FDTD_H1D::PrepareKernel()
 
 void FDTD_H1D::Run()
 {
+    Preparing = true;
     std::thread::id this_id = std::this_thread::get_id();
     std::cout << "Main thread id: " << this_id << std::endl;
     CheckForError();
@@ -608,13 +620,17 @@ void FDTD_H1D::prun()
     // TODO include Mutex protection
     std::thread::id this_id = std::this_thread::get_id();
     std::cout << "prun id: " << this_id << std::endl;
+    usleep(1000000);
     Converged = false;
     unsigned int k = 0;
     unsigned int NextConvergenceTest = ConvergenceTestStep;
+    unsigned int NextSaveStep = SaveStep;
+    if (PeriodicSave) {OpenPeriodicFile();}
     Vector<float> ConvergenceDiff(0);
     if (Valid)
     {
         Running = true;
+        Preparing = false;
         while ( Running && (LoopCount < MaxLoop) )
         {
             if (LoopCount%100 == 0)
@@ -643,7 +659,7 @@ void FDTD_H1D::prun()
             // LoopCount has been incremented so inversion on the test compare to first one
             if ( (LoopCount%2) == 0 ) {EvenVectorProtection.unlock();}
             else {OddVectorProtection.unlock();}
-            
+            //LoopCount++;
             if (AutoConvergenceTest)
             {
                 // Actually there is convergence test in addition to the maximum number of loop. Maximum number of loop can act as a security to not finish in an infinite loop for convergence
@@ -659,33 +675,175 @@ void FDTD_H1D::prun()
                     NextConvergenceTest += ConvergenceTestStep;
                 }
             }
+            if (PeriodicSave)
+            {
+                if (LoopCount == NextSaveStep)
+                {
+                    WriteActualStep();
+                    NextSaveStep += SaveStep;
+                }
+            }
         }
         Running = false;
+        if (PeriodicSave) {ClosePeriodicFile();}
     }
     else
     {
         std::cout << "Error, trying to run a simulation whereas it is not valid. Abortion." << std::endl;
+        Preparing = false;
     }
 }
 
 Vector<float> FDTD_H1D::GetLastSimulationOutput()
 {
     // not very efficient leads to creation and copy of a vector
-    // prefer second version of the functin for time improvement
+    // prefer second version of the function for time improvement
     Vector<float> output(0);
-    if ( (LoopCount%2) == 0 ) {OddVectorProtection.lock();}
-    else {EvenVectorProtection.lock();}
-    output = *(ActiveVector);
-    if ( (LoopCount%2) == 0 ) {OddVectorProtection.unlock();}
-    else {EvenVectorProtection.unlock();}
+    if (LastAskedOutput < LoopCount)
+    {
+        std::cout << "LastAsked: " << LastAskedOutput << ", actual: " << LoopCount << std::endl; // deadlock!!!!!
+        if ( (LoopCount%2) == 0)
+        {
+            OddVectorProtection.lock();
+            output = *(ActiveVector);
+            OddVectorProtection.unlock();
+        }
+        else
+        {
+            EvenVectorProtection.lock();
+            output = *(ActiveVector);
+            EvenVectorProtection.unlock();
+        }
+        LastAskedOutput = LoopCount;
+    }
     return output;
 }
 
 void FDTD_H1D::GetLastSimulationOutput(Vector<float> Output)
 {
-    if ( (LoopCount%2) == 0 ) {OddVectorProtection.lock();}
-    else {EvenVectorProtection.lock();}
-    Output = *(ActiveVector);
-    if ( (LoopCount%2) == 0 ) {OddVectorProtection.unlock();}
-    else {EvenVectorProtection.unlock();}
+    if (LastAskedOutput < LoopCount)
+    {
+        if ( (LoopCount%2) == 0)
+        {
+            OddVectorProtection.lock();
+            Output = *(ActiveVector);
+            OddVectorProtection.unlock();
+        }
+        else
+        {
+            EvenVectorProtection.lock();
+            Output = *(ActiveVector);
+            EvenVectorProtection.unlock();
+        }
+        LastAskedOutput = LoopCount;
+    }
+}
+
+
+void FDTD_H1D::SetPeriodicSaveFileType(SaveFileType nSaveFileType)
+{
+    if (!Running) // can't change extension during calculation
+    {
+        switch (nSaveFileType)
+        {
+            case txt:
+                PeriodicSaveExtension = ".txt";
+                break;
+            case json:
+                PeriodicSaveExtension = ".json";
+                break;
+            case binary:
+                PeriodicSaveExtension = ".fdtd_h1d";
+                break;
+            default:
+                std::cout << "Warning, undefined extension asked, abort periodic save option. Actual extension is kept." << std::endl;
+                PeriodicSave = false;
+        }
+    }
+    else
+    {
+        std::cout << "Warning, trying to change periodic save extension while a simulation is running, nothing is done. This may lead to an error later." << std::endl;
+    }
+}
+
+void FDTD_H1D::OpenPeriodicFile()
+{
+    if (!PeriodicSaveFileRenamed)
+    {
+        PeriodicSaveFileName = GetAutosaveFileName();
+    }
+
+    switch (lSaveFileType)
+    {
+        case txt:
+            PeriodicSaveFile.open( PeriodicSaveFileName+PeriodicSaveExtension, std::ios::out );
+            std::cout << "txt implementation in progress actually" << std::endl;
+            break;
+        case json:
+            std::cout << "json not implemented yet" << std::endl;
+            // TODO
+            break;
+        case binary:
+            // PeriodicSaveFile.open( PeriodicSaveFileName+PeriodicSaveExtension, std::ios::binary );
+            // TODO
+            std::cout << "binary not implement yet" << std::endl;
+            break;
+        default:
+            std::cout << "Warning, unknown extension, can't create the periodic save file..." << std::endl;
+
+    }
+
+    if ( !PeriodicSaveFile.is_open() )
+    {
+        std::cout << "Warning can't create/open " << PeriodicSaveFileName << PeriodicSaveExtension << ". Then the simulation won't be saved periodically, this may lead to an error later." << std::endl;
+    }
+    else
+    {
+        switch (lSaveFileType)
+        {
+            case txt:
+                PeriodicSaveFile << NumberOfNode << " " << SaveStep << "\n";
+                PeriodicSaveFile.flush();
+                break;
+            default:
+                // TODO
+                std::cout << "only txt extension handeled yet, so can't write number of node and save step in the file..." << std::endl;
+        }
+    }
+}
+
+void FDTD_H1D::ClosePeriodicFile()
+{
+    if ( PeriodicSaveFile.is_open() )
+    {
+        PeriodicSaveFile.close();
+    }
+}
+
+void FDTD_H1D::WriteActualStep()
+{
+    if ( PeriodicSaveFile.is_open() )
+    {
+        switch (lSaveFileType)
+        {
+            case txt:
+                for (unsigned int k=0 ; k<NumberOfNode ; k++)
+                {
+                    PeriodicSaveFile << ActiveVector->data[k] << " ";
+                }
+                PeriodicSaveFile << "\n";
+                PeriodicSaveFile.flush();
+                break;
+            default:
+                // TODO
+                std::cout << "Warning, implementation not finished yet for WriteActualStep()." << std::endl;
+        }
+    }
+}
+
+std::string FDTD_H1D::GetAutosaveFileName()
+{
+    uint64_t TimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::string output = "Autosave_" + std::to_string(TimeStamp);
+    return output;
 }
